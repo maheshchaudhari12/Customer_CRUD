@@ -2,10 +2,12 @@ import { useState } from 'react';
 import axios from 'axios';
 import './RegistrationForm.css';
 
-const RegistrationForm = () => {
+const RegistrationForm = ({ onRegistrationSuccess }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        password: '',
+        confirmPassword: '',
         gender: '',
         state: '',
         city: '',
@@ -15,6 +17,8 @@ const RegistrationForm = () => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const states = [
         'Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu',
@@ -41,22 +45,18 @@ const RegistrationForm = () => {
         { id: 'rowhouse', label: 'Row House' }
     ];
 
-    // Handle input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value,
-            // Reset city when state changes
             ...(name === 'state' && { city: '' })
         }));
-        // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
-    // Handle checkbox changes
     const handleCheckboxChange = (e) => {
         const { value, checked } = e.target;
         setFormData(prev => ({
@@ -65,13 +65,11 @@ const RegistrationForm = () => {
                 ? [...prev.preferences, value]
                 : prev.preferences.filter(pref => pref !== value)
         }));
-        // Clear error for preferences
         if (errors.preferences) {
             setErrors(prev => ({ ...prev, preferences: '' }));
         }
     };
 
-    // Validate form
     const validateForm = () => {
         const newErrors = {};
 
@@ -83,6 +81,18 @@ const RegistrationForm = () => {
             newErrors.email = 'Email is required';
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
             newErrors.email = 'Email is invalid';
+        }
+
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters';
+        }
+
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Please confirm your password';
+        } else if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
         }
 
         if (!formData.gender) {
@@ -116,9 +126,11 @@ const RegistrationForm = () => {
         setLoading(true);
 
         try {
+            const { confirmPassword, ...registrationData } = formData;
+
             const response = await axios.post(
-                'https://localhost:7185/api/Registration', // Replace with your API port
-                formData,
+                'https://localhost:7185/api/Registration',
+                registrationData,
                 {
                     headers: {
                         'Content-Type': 'application/json'
@@ -127,17 +139,26 @@ const RegistrationForm = () => {
             );
 
             console.log('Response:', response.data);
-            setSuccessMessage('Registration successful! Switch to "View All Records" to see it.');
+            setSuccessMessage('Registration successful! You can now login.');
 
             // Reset form
             setFormData({
                 name: '',
                 email: '',
+                password: '',
+                confirmPassword: '',
                 gender: '',
                 state: '',
                 city: '',
                 preferences: []
             });
+
+            // Call parent callback if provided
+            if (onRegistrationSuccess) {
+                setTimeout(() => {
+                    onRegistrationSuccess();
+                }, 2000);
+            }
 
         } catch (error) {
             console.error('Error:', error);
@@ -156,7 +177,7 @@ const RegistrationForm = () => {
     return (
         <div className="registration-container">
             <form className="registration-form" onSubmit={handleSubmit}>
-                <h2>Registration Form</h2>
+                <h2>Create Account</h2>
 
                 {/* Name */}
                 <div className="form-group">
@@ -186,6 +207,40 @@ const RegistrationForm = () => {
                         placeholder="Enter your email"
                     />
                     {errors.email && <span className="error-message">{errors.email}</span>}
+                </div>
+
+                {/* Password */}
+                <div className="form-group">
+                    <label htmlFor="password">Password *</label>
+
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className={errors.password ? 'error' : ''}
+                        placeholder="Enter password (min. 6 characters)"
+                    />
+
+                    {errors.password && <span className="error-message">{errors.password}</span>}
+                </div>
+
+                {/* Confirm Password */}
+                <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirm Password *</label>
+
+                    <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className={errors.confirmPassword ? 'error' : ''}
+                        placeholder="Confirm your password"
+                    />
+
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
                 </div>
 
                 {/* Gender */}
@@ -288,7 +343,7 @@ const RegistrationForm = () => {
                     className="submit-btn"
                     disabled={loading}
                 >
-                    {loading ? 'Registering...' : 'Register'}
+                    {loading ? 'Creating Account...' : 'Register'}
                 </button>
 
                 {/* Success/Error Messages */}

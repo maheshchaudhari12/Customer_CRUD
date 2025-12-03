@@ -4,7 +4,16 @@ import EditModal from './EditModal';
 import DeleteConfirmation from './DeleteConfirmation';
 import './RegistrationList.css';
 
-const RegistrationList = () => {
+const RegistrationList = ({ isAdmin = false }) => {
+    if (!isAdmin) {
+        return (
+            <div className="access-denied">
+                <h2>Access Denied</h2>
+                <p>You don't have permission to view this page.</p>
+            </div>
+        );
+    }
+
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -39,7 +48,7 @@ const RegistrationList = () => {
             await axios.delete(`${API_URL}/${id}`);
             setRegistrations(registrations.filter(reg => reg.id !== id));
             setDeleteItem(null);
-            // Show success message (optional)
+            // Show success message 
             alert('Registration deleted successfully!');
         } catch (err) {
             console.error('Error deleting registration:', err);
